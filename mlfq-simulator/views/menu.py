@@ -20,12 +20,11 @@ class Menu:
         self.main_frame.grid_columnconfigure(0, weight=1)
         self.main_frame.grid_columnconfigure(1, weight=3)
         self.main_frame.grid_rowconfigure(0, weight=1)
+        self.main_frame.grid_rowconfigure(1, weight=1)  # Add second row for Gantt chart
 
         # Right panel (visualization)
         self.right_frame = ttk.Frame(self.main_frame, borderwidth=2, relief="sunken")
         self.right_frame.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
-
-        # Configure grid for right_frame
         self.right_frame.grid_rowconfigure(0, weight=1)
         self.right_frame.grid_columnconfigure(0, weight=1)
 
@@ -86,6 +85,18 @@ class Menu:
         self.start_button = ttk.Button(self.execution_frame, text="Start Simulation",
                                       command=self.start_simulation)
         self.start_button.pack(fill=tk.X, expand=True)
+
+        # Gantt Chart Section (new row spanning both columns)
+        self.gantt_frame = ttk.Frame(self.main_frame, borderwidth=2, relief="ridge")
+        self.gantt_frame.grid(row=1, column=0, columnspan=2, sticky="nsew", padx=5, pady=5)
+        self.main_frame.grid_rowconfigure(1, weight=1)
+        self.gantt_frame.grid_rowconfigure(0, weight=1)
+        self.gantt_frame.grid_columnconfigure(0, weight=1)
+
+        # Placeholder for Gantt chart (can be replaced with actual chart later)
+        self.gantt_figure = Figure(figsize=(10, 2), dpi=100)
+        self.gantt_canvas = FigureCanvasTkAgg(self.gantt_figure, master=self.gantt_frame)
+        self.gantt_canvas.get_tk_widget().grid(row=0, column=0, sticky="nsew")
 
     def add_process_block(self, burst_time=None):
         try:

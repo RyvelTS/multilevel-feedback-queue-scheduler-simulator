@@ -16,7 +16,7 @@ class App:
         self.original_processes = []
         self.processes = []
         self.time_quantum = [2, 4, 8]
-        self.promotion_threshold = 16
+        self.promotion_threshold = 8
 
     def add_process(self, process_id, burst_time):
         new_process = Process(process_id, burst_time)
@@ -45,10 +45,12 @@ class App:
         def run_scheduler():
             self.visualizer = VisualizerService(
                 canvas=self.setup_ui.canvas,
-                figure=self.setup_ui.figure
+                figure=self.setup_ui.figure,
+                gantt_canvas=self.setup_ui.gantt_canvas,
+                gantt_figure=self.setup_ui.gantt_figure
             )
             scheduler_service = MLFQ(
-                root=self.root,  # Pass root here [[2]]
+                root=self.root,
                 processes=self.processes.copy(),
                 time_quantum=self.time_quantum,
                 promotion_threshold=self.promotion_threshold,

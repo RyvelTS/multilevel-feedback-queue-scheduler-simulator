@@ -23,29 +23,72 @@ class MLFQ:
         self.visualizer.assign_colors(self.processes)
         self.visualizer.save_queue_image(self.queues, current_time)
 
-        while any(not q.is_empty() for q in self.queues):
+        running_process = None
+        running_queue_idx = None
+        gantt_start_time = None  # Track when the current process started running
+
+        while any(not q.is_empty() for q in self.queues) or running_process:
             # Promote processes that have waited too long
             self.queue_service.promote_processes(current_time, self.promotion_threshold)
 
-            processed = False
-            for i, queue in enumerate(self.queues):
-                if not queue.is_empty():
-                    process = queue.dequeue()
-                    process.remaining_time_slice = self.time_quantum[i]
-                    execution_time = min(process.remaining_time_slice, process.burst_time)
-                    current_time += execution_time
-                    process.burst_time -= execution_time
+            # If no process is running, pick the next one
+            if not running_process:
+                for i, queue in enumerate(self.queues):
+                    if not queue.is_empty():
+                        running_process = queue.dequeue()
+                        running_queue_idx = i
+                        running_process.remaining_time_slice = self.time_quantum[i]
+                        gantt_start_time = current_time  # Mark start time for Gantt
+                        break
 
-                    if process.burst_time > 0:
-                        self.queue_service.demote_process(process, current_time, i)
+            # If a process is running, execute it for one time unit
+            if running_process:
+                running_process.burst_time -= 1
+                running_process.remaining_time_slice -= 1
+                # Reset waiting time since it's now running
+                running_process.entry_time = current_time + 1
 
-                    self.queue_service.print_queues(current_time)
-                    self.visualizer.save_queue_image(self.queues, current_time)
-                    self.root.after(500, lambda: None)
-                    time.sleep(1)
-                    processed = True
-                    break
-            if not processed:
+                # --- Show running process in its queue for visualization ---
+                if running_process.burst_time > 0:
+                    self.queues[running_queue_idx].processes.insert(0, running_process)
+                    self.queue_service.print_queues(current_time + 1)
+                    self.visualizer.save_queue_image(self.queues, current_time + 1)
+                    self.queues[running_queue_idx].processes.pop(0)
+                else:
+                    # If finished, do not show in queue
+                    self.queue_service.print_queues(current_time + 1)
+                    self.visualizer.save_queue_image(self.queues, current_time + 1)
+                # ---------------------------------------------------------
+
+                self.root.after(500, lambda: None)
+                # Handle demotion or finishing after tick
+                if running_process.burst_time == 0:
+                    # Record Gantt event for finishing process
+                    self.visualizer.record_gantt_event(
+                        running_process.process_id,
+                        gantt_start_time,
+                        current_time + 1,
+                        running_queue_idx
+                    )
+                    running_process = None
+                    running_queue_idx = None
+                    gantt_start_time = None
+                elif running_process.remaining_time_slice == 0:
+                    # Record Gantt event for time slice expiration
+                    self.visualizer.record_gantt_event(
+                        running_process.process_id,
+                        gantt_start_time,
+                        current_time + 1,
+                        running_queue_idx
+                    )
+                    self.queue_service.demote_process(running_process, current_time + 1, running_queue_idx)
+                    running_process = None
+                    running_queue_idx = None
+                    gantt_start_time = None
+
+                current_time += 1
+                time.sleep(0.5)
+            else:
                 break
 
         self.visualizer.create_animation()
