@@ -6,3 +6,6 @@ result/
 
 # Ignore the cache folder
 __pycache__/
+
+# Ignore the ds store
+.DS_Store
